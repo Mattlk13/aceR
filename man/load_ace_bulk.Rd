@@ -11,14 +11,16 @@ load_ace_bulk(
   exclude = c(),
   pattern = "",
   which_modules = "",
-  app_type = c("explorer", "email", "pulvinar")
+  data_type = c("explorer", "email", "pulvinar")
 )
 }
 \arguments{
 \item{path}{a character vector of full path names; the default
     corresponds to the working directory, \code{\link[base]{getwd}()}.  Tilde
     expansion (see \code{\link[base]{path.expand}}) is performed.  Missing
-    values will be ignored.}
+    values will be ignored.  Elements with a marked encoding will
+    be converted to the native encoding (and if that fails, considered
+    non-existent).}
 
 \item{verbose}{logical. Print details? Defaults to \code{TRUE}}
 
@@ -31,7 +33,7 @@ load_ace_bulk(
 
 \item{which_modules}{Specify modules to process. Defaults to all modules.}
 
-\item{app_type}{character What app data export type produced this data? One of
+\item{data_type}{character What app data export type produced this data? One of
 \code{c("explorer", "email", "pulvinar")}. Must be specified.}
 }
 \value{

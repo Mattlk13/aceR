@@ -6,15 +6,20 @@
 \usage{
 post_clean_chance(
   df,
+  app_type = c("classroom", "explorer"),
   overall = TRUE,
   cutoff_dprime = 0,
   cutoff_2choice = 0.5,
-  cutoff_4choice = 0.25
+  cutoff_4choice = 0.25,
+  extra_demos = NULL
 )
 }
 \arguments{
 \item{df}{a df, output by \code{\link{proc_by_module}}, containing processed
 ACE or SEA data.}
+
+\item{app_type}{character. What app type produced this data? One of
+\code{c("classroom", "explorer")}. Must be specified.}
 
 \item{overall}{Also scrub ".overall" data? Defaults to \code{TRUE}.}
 
@@ -26,6 +31,9 @@ ACE or SEA data.}
 
 \item{cutoff_4choice}{Minimum value of accuracy to allow, for 4-response tasks
 (Stroop, Task Switch). Defaults to 0.25.}
+
+\item{extra_demos}{Character vector specifying any custom-added demographics
+columns (beyond app defaults) to pass through the function. Defaults to \{code{NULL}.}
 }
 \value{
 a df, similar in structure to \code{proc}, but with below-cutoff values in
@@ -33,5 +41,6 @@ certain columns converted to \code{NA}.
 }
 \description{
 User-friendly wrapper to replace below-chance records with \code{NA}
-in ACE/SEA data processed with \code{\link{proc_by_module}}.
+in ACE data processed with \code{\link{proc_by_module}}. Currently only
+compatible with ACE (SEA not yet implemented),
 }

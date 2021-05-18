@@ -1,24 +1,20 @@
 
-#' @importFrom dplyr funs one_of summarize_at vars
+#' @importFrom dplyr across summarize
+#' @importFrom tidyselect any_of
 #' @keywords internal
 
 ace_descriptive_statistics <- function(x, col) {
-  out = summarize_at(x, vars(one_of(col)), funs(
-    mean = ace_mean,
-    median = ace_median,
-    count = ace_count,
-    length = ace_length,
-    sd = ace_sd))
+  out = summarize(x,
+                  across(any_of(col),
+                         list(
+                           mean = ace_mean,
+                           median = ace_median,
+                           count = ace_count,
+                           length = ace_length,
+                           sd = ace_sd,
+                           min = ace_min
+                           )))
   return (out)
-}
-
-#' @keywords internal 
-
-ace_descriptive_statistics_by_group <- function(x, y) {
-  var_by_group = c(sd = ace_sd_by_group(x, y), se = ace_se_by_group(x, y))
-  avg_by_group = c(mean = ace_mean_by_group(x, y), median = ace_median_by_group(x, y))
-  sum_by_group = c(count = ace_count_by_group(x, y), length = ace_length_by_group(x, y))
-  return (c(var_by_group, avg_by_group, sum_by_group))
 }
 
 #' @keywords internal 
@@ -29,34 +25,37 @@ ace_average_turns <- function (x, y) {
   return (c(avg_last_3_turns, avg_last_5_turns))
 }
 
+#' @importFrom dplyr across summarize
+#' @importFrom tidyselect any_of
 #' @keywords internal 
 
 ace_spatial_span <- function(x, col) {
-  sustained_span = summarize_at(x, vars(one_of(col)), funs(
-    span = ace_span))
+  sustained_span = summarize(x,
+                             across(any_of(col),
+                                    list(span = ace_span)))
   return (sustained_span)
 }
 
+#' @importFrom dplyr across summarize
+#' @importFrom tidyselect any_of
 #' @keywords internal 
 
 ace_dprime_dplyr <- function(x, col) {
-  dprime_out = summarize_at(x, vars(one_of(col)), funs(
-    dprime = ace_dprime))
+  dprime_out = summarize(x,
+                         across(any_of(col),
+                                list(dprime = ace_dprime),
+                                .names = "{.fn}"))
   return (dprime_out)
 }
 
-#' @keywords internal
-
-ace_detection_rate <- function(x, y) {
-  rate = c(rate = ace_detection(x, y))
-  return (c(rate))
-}
-
+#' @importFrom dplyr across summarize
+#' @importFrom tidyselect any_of
 #' @keywords internal 
 
 ace_ishihara_dplyr <- function(x, col) {
-  out = summarize_at(x, vars(one_of(col)), funs(
-    colorblind = ace_ishihara))
+  out = summarize(x, across(any_of(col),
+                            list(colorblind = ace_ishihara),
+                            .names = "{.fn}"))
   return (out)
 }
 
@@ -79,38 +78,58 @@ ace_rcs <- function(x, cols) {
   return (out)
 }
 
-#' @importFrom dplyr funs one_of summarize_at vars
+#' @importFrom dplyr across mutate summarize
+#' @importFrom rlang !! :=
+#' @importFrom tidyselect any_of
+#' @keywords internal 
+
+ace_practice_count <- function(x, col) {
+  out = summarize(x, across(any_of(col), 
+                            list(practice_count = ace_median),
+                            .names = "{.col}")) %>% 
+    mutate(!!COL_PRACTICE_COUNT := as.integer(!!Q_COL_PRACTICE_COUNT))
+  return (out)
+}
+
+#' @importFrom dplyr across summarize
+#' @importFrom tidyselect any_of
 #' @keywords internal 
 
 sea_descriptive_statistics <- function(x, col) {
-  out = summarize_at(x, vars(one_of(col)), funs(
-    mean = ace_mean,
-    median = ace_median,
-    sum = ace_sum,
-    count = ace_count,
-    length = ace_length,
-    sd = ace_sd))
+  out = summarize(x,
+                  across(any_of(col), 
+                         list(mean = ace_mean,
+                              median = ace_median,
+                              sum = ace_sum,
+                              count = ace_count,
+                              length = ace_length,
+                              sd = ace_sd)))
   return (out)
 }
 
-#' @importFrom dplyr funs one_of summarize_at vars
+#' @importFrom dplyr across summarize
+#' @importFrom tidyselect any_of
 #' @keywords internal 
 
 sea_reading_descriptive_statistics <- function(x, col) {
-  out = summarize_at(x, vars(one_of(col)), funs(
-    mean = ace_mean,
-    sum = ace_sum,
-    score = sea_sum_adj,
-    count = ace_count,
-    length = ace_length,
-    sd = ace_sd))
+  out = summarize(x,
+                  across(any_of(col),
+                         list(mean = ace_mean,
+                              sum = ace_sum,
+                              score = sea_sum_adj,
+                              count = ace_count,
+                              length = ace_length,
+                              sd = ace_sd)))
   return (out)
 }
 
+#' @importFrom dplyr across summarize
+#' @importFrom tidyselect any_of
 #' @keywords internal 
 
 sea_task_duration <- function(x, col) {
-  out = summarize_at(x, vars(one_of(col)), funs(
-    duration = ace_max))
+  out = summarize(x,
+                  across(any_of(col),
+                         list(duration = ace_max)))
   return (out)
 }

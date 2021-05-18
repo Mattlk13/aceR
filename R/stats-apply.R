@@ -2,7 +2,7 @@
 #' @keywords internal
 #' @import dplyr
 #' @importFrom magrittr %>%
-#' @importFrom rlang sym syms quo_name UQ UQS !! !!!
+#' @importFrom rlang as_string sym syms quo_name UQ UQS !! !!!
 #' @import tidyr
 
 apply_stats <- function(x, id_var, col, FUN, factors = NULL, suffix = "", transform_dir = "wide", ...) {
@@ -32,10 +32,6 @@ apply_stats <- function(x, id_var, col, FUN, factors = NULL, suffix = "", transf
     z = x %>%
       group_by(!!id_var) %>%
       FUN(col) %>%
-      rename_at(-1, funs(paste0(col_out, "_", .))) %>%
-      # only triggers for the boutique columns
-      rename_at(-1, funs(str_replace(., "rcs_", ""))) %>%
-      rename_at(-1, funs(str_replace(., "dprime_", ""))) %>%
       ungroup()
     
   } else {
@@ -44,10 +40,9 @@ apply_stats <- function(x, id_var, col, FUN, factors = NULL, suffix = "", transf
         z = vector("list", 3)
         # if there are two factors, put out THREE: one just by factor 1, one just by factor 2, and one crossed
         z[[1]] = x %>%
+          filter_invalid_stats_levels(factors[[1]]) %>% 
           group_by(!!!c(id_var, factors[[1]])) %>%
           FUN(col) %>%
-          # need to add the name prefix here so gather can call the columns easily
-          rename_at(-(1:2), funs(paste0(col_out, "_", .))) %>%
           ungroup() %>%
           pivot_wider(id_cols = !!id_var,
                       names_from = !!factors[[1]],
@@ -56,10 +51,9 @@ apply_stats <- function(x, id_var, col, FUN, factors = NULL, suffix = "", transf
                       names_sep = ".")
         
         z[[2]] = x %>%
+          filter_invalid_stats_levels(factors[[2]]) %>% 
           group_by(!!!c(id_var, factors[2])) %>%
           FUN(col) %>%
-          # need to add the name prefix here so gather can call the columns easily
-          rename_at(-(1:2), funs(paste0(col_out, "_", .))) %>%
           ungroup() %>%
           pivot_wider(id_cols = !!id_var,
                       names_from = !!factors[[2]],
@@ -68,9 +62,10 @@ apply_stats <- function(x, id_var, col, FUN, factors = NULL, suffix = "", transf
                       names_sep = ".")
         
         z[[3]] = x %>%
+          filter_invalid_stats_levels(factors[[1]]) %>% 
+          filter_invalid_stats_levels(factors[[2]]) %>% 
           group_by(!!!c(id_var, factors)) %>%
           FUN(col) %>%
-          rename_at(-(1:3), funs(paste0(col_out, "_", .))) %>%
           ungroup() %>%
           complete(!!!c(id_var, factors)) %>%
           unite(cond, !!!factors[2:1], sep = ".") %>%
@@ -87,15 +82,16 @@ apply_stats <- function(x, id_var, col, FUN, factors = NULL, suffix = "", transf
         z = vector("list", 2)
         # if there are two factors, put out THREE: one just by factor 1, one just by factor 2, and one crossed
         z[[1]] = x %>%
+          filter_invalid_stats_levels(factors[[1]]) %>% 
           group_by(!!!c(id_var, factors[[1]])) %>%
           FUN(col) %>%
-          rename_at(-(1:2), funs(paste0(col_out, "_", .))) %>%
           ungroup()
         
         z[[2]] = x %>%
+          filter_invalid_stats_levels(factors[[1]]) %>% 
+          filter_invalid_stats_levels(factors[[2]]) %>% 
           group_by(!!!c(id_var, factors)) %>%
           FUN(col) %>%
-          rename_at(-(1:3), funs(paste0(col_out, "_", .))) %>%
           ungroup() %>%
           pivot_wider(names_from = !!factors[[2]],
                       values_from = starts_with(!!col_out),
@@ -103,18 +99,18 @@ apply_stats <- function(x, id_var, col, FUN, factors = NULL, suffix = "", transf
                       names_sep = ".")
         
         
-        # using join_all here instead of multi_merge bc easily accepts multiple joining vars
-        # join across all common vars, we are assuming common named vars are in fact the same measurement
-        z = plyr::join_all(z)
+        # using full_join here instead of multi_merge bc easily accepts multiple joining vars
+        # to silence error, hard-join by ID var and first factor (which is kept long)
+        z = purrr::reduce(z, full_join, by = c(as_string(id_var), as_string(factors[[1]])))
       }
     } else {
       if (transform_dir == "wide") {
         # if only one factor, only put out 1
         if (is.list(factors)) factors = factors[[1]]
         z = x %>%
+          filter_invalid_stats_levels(factors) %>% 
           group_by(!!!c(id_var, factors)) %>%
           FUN(col) %>%
-          rename_at(-(1:2), funs(paste0(col_out, "_", .))) %>%
           ungroup() %>%
           pivot_wider(names_from = !!factors,
                       values_from = starts_with(!!col_out),
@@ -122,28 +118,30 @@ apply_stats <- function(x, id_var, col, FUN, factors = NULL, suffix = "", transf
                       names_sep = ".")
       } else if (transform_dir == "long") {
         z = x %>%
+          filter_invalid_stats_levels(factors) %>% 
           group_by(!!!c(id_var, factors)) %>%
           FUN(col) %>%
-          rename_at(-(1:2), funs(paste0(col_out, "_", .))) %>%
-          rename_at(-(1:2), funs(str_replace(., "rcs_", ""))) %>%
           ungroup()
       }
     }
   }
   
   if (by_factor) suffix = ""
-  if (suffix != "") z = rename_at(z, -1, funs(paste(., suffix, sep = ".")))
+  if (suffix != "") z = rename_with(z, ~paste(., suffix, sep = "."), -(!!COL_BID))
   
   return(z)
 }
 
 #' @keywords internal
+#' @importFrom dplyr filter
+#' @importFrom rlang !! as_string
 
-ace_apply_by_group <- function(x, y, FUN) {
-  group = replace_blanks(y, NA)
-  agg = aggregate(list(x), list(group), FUN = FUN, simplify = TRUE)
-  out = data.frame(t(agg[2]))
-  names(out) = unlist(agg[1])
-  row.names(out) <- NULL
-  return (out)
+filter_invalid_stats_levels <- function (x, this_factor) {
+  this_factor_str <- as_string(this_factor)
+  
+  if (this_factor_str %in% c(COL_CORRECT_BUTTON, COL_CORRECT_RESPONSE, COL_LATE_RESPONSE, COL_PREV_CORRECT_BUTTON, "cue_rotated")) {
+    return (filter(x, !endsWith(!!this_factor, "no_response"), !is.na(!!this_factor), !!this_factor != "prev_NA"))
+  } else {
+    return (x)
+  }
 }

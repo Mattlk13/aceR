@@ -9,6 +9,7 @@
 # RStudio files
 .Rproj.user/
 *.Rproj
+renv/*
 # produced vignettes
 vignettes/*.html
 vignettes/*.pdf
@@ -23,3 +24,4 @@ scripts/seacrest/*spin
 scripts/*.html
 scratchpad.R
 ~/.boxr-oauth
+ignore/*

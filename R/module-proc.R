@@ -21,6 +21,7 @@ NULL
 #' @importFrom rlang !!
 #' @importFrom stats aggregate median na.omit qnorm sd time var
 #' @importFrom tidyr nest
+#' @importFrom tidyselect any_of
 #' @param df a \code{\link{data.frame}} containing formatted trialwise ACE data. 
 #'
 #' This includes data loaded with the following methods: 
@@ -39,8 +40,8 @@ NULL
 #' (e.g. pre & post), specify their labels here. Case insensitive.
 #' @param verbose logical. Print details? Defaults to \code{FALSE}.
 #' @return Returns summary statistics for every unique module included in the 
-#'  data as a list. Throws warnings for modules with undefined methods. 
-#'  See \code{\link{ace_procs}} for a list of supported modules.
+#' data as a list. Throws warnings for modules with undefined methods. 
+#' See \code{\link{ace_procs}} for a list of supported modules.
 
 proc_by_module <- function(df,
                            app_type = c("classroom", "explorer", "sea"),
@@ -52,8 +53,7 @@ proc_by_module <- function(df,
   
   # select some modules to process out of all present, if specified
   if (any(modules != "all")) {
-    if (any(!(modules %in% c(ALL_MODULES, ALL_SEA_MODULES)))) {
-      warning("Modules improperly specified! Check spelling?")
+    if (check_module_misspelling(modules)) {
       return (data.frame())
     }
     df <- df %>%
@@ -61,7 +61,7 @@ proc_by_module <- function(df,
   }
   
   if (any(df$module == "unknown")) {
-    warning("Unsupported modules found. They will not be processed.")
+    warning(crayon::yellow("Unsupported modules found. They will not be processed."))
     df <- df %>%
       filter(module != "unknown")
   }
@@ -106,7 +106,7 @@ proc_by_module <- function(df,
     # This is now here for SEA compatibility
     out <- df %>%
       mutate(demos = map(data, ~.x %>%
-                           select(one_of(all_these_demos)) %>%
+                           select(any_of(all_these_demos)) %>%
                            select(-!!Q_COL_TIME) %>%
                            distinct()))
   }
@@ -130,7 +130,6 @@ proc_by_module <- function(df,
   
   # prepare for output
   
-  
   if (app_type == "explorer") {
     # Try this: Ace Explore has demos collected at a separate date/time,
     # so BID will _basically never_ match up. Use PID to bind demos to proc
@@ -147,19 +146,22 @@ proc_by_module <- function(df,
     out <- out %>%
       select(module, demos, proc) %>%
       mutate(demos = map(demos, ~.x %>%
-                           select(-file) %>%
+                           select(-any_of(COL_FILE)) %>%
                            distinct()))
     
     if (app_type == "explorer") {
       out <- out %>%
         mutate(proc = map2(proc, module, ~.x %>%
                              select(!!COL_BID, !!COL_PID, everything()) %>%
-                             rename_at(-(1L:2L), funs(paste(toupper(.y), ., sep = ".")))))
+                             rename_with(.fn = paste_module_colname,
+                                         module = .y,
+                                         .cols = -c(!!COL_BID, !!COL_PID))))
     } else {
       out <- out %>%
         mutate(proc = map2(proc, module, ~.x %>%
                              select(!!COL_BID, everything()) %>%
-                             rename_at(-1L, funs(paste(toupper(.y), ., sep = ".")))))
+                             rename_with(.fn = paste_module_colname,
+                                         module = .y, .cols = -(!!COL_BID))))
     }
     
     if (app_type == "classroom") {
@@ -169,8 +171,9 @@ proc_by_module <- function(df,
       out <- out %>%
         mutate(proc = pmap(list(proc, demos, module), function (a, b, c) {
           full_join(b, a, by = demo_merge_col) %>%
-            rename_at(vars(one_of(COL_BID, COL_TIME)), funs(paste(toupper(c), ., sep = "."))) %>%
-            return()
+            rename_with(.fn = paste_module_colname,
+                        module = c,
+                        .cols = any_of(c(COL_BID, COL_TIME)))
         }))
     } else if (app_type == "explorer") {
       # ACE explorer data:
@@ -209,6 +212,17 @@ proc_by_module <- function(df,
 
 #' @keywords internal
 
+check_module_misspelling = function(modules) {
+  if (any(!(modules %in% c(ALL_MODULES, ALL_SEA_MODULES)))) {
+    warning(crayon::red("Modules improperly specified! Check spelling?"))
+    return (TRUE)
+  } else {
+    return (FALSE)
+  }
+}
+
+#' @keywords internal
+
 get_valid_demos = function(df, is_ace) {
   if (is_ace) {
     return (names(df)[names(df) %in% c(ALL_POSSIBLE_DEMOS, ALL_POSSIBLE_EXPLORE_DEMOS, COL_STUDY_COND)])
@@ -239,6 +253,12 @@ reconstruct_pid <- function (proc) {
                   !!COL_PID := purrr::map_chr(!!Q_COL_PID, 1L)) %>%
     select(!!COL_BID, !!COL_PID, everything()) %>%
     return()
+}
+
+#' @keywords internal
+
+paste_module_colname <- function (col, module) {
+  return (paste(toupper(module), col, sep = "."))
 }
 
 #' @keywords internal deprecated

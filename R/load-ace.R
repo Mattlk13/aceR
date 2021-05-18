@@ -160,10 +160,20 @@ transform_mid <- function (dat, file, app_type) {
     standardize_ace_column_types() %>%
     # clean, standardize, possibly construct PID, BID, short BID
     standardize_ace_ids() %>%
-    standardize_ace_values(app_type = app_type)
+    standardize_ace_values(app_type = app_type) %>% 
+    # appends condition to module name for SAAT only
+    # should not modify other modules
+    # must be done after standardize_ace_values
+    # because that one fixes SAAT flipped condition labels
+    module_split_saat()
+  
+  if (COL_PRACTICE %in% names(dat) & dat[[COL_MODULE]][1] != ISHIHARA) {
+    dat <- dat %>%
+      summarize_practice()
+  }
   
   # Should only activate for explorer demos modules
-  if (dat$module[1] != DEMOS) {
+  if (dat[[COL_MODULE]][1] != DEMOS) {
     if (COL_CONDITION %in% names(dat)) {
       dat <- dat %>%
         group_by(!!Q_COL_BID, !!Q_COL_CONDITION) 
@@ -171,6 +181,15 @@ transform_mid <- function (dat, file, app_type) {
       dat <- dat %>%
         group_by(!!Q_COL_BID)
     }
+    
+    # for backward compatibility
+    # should only activate for occasional ACE Classroom files
+    # that don't include trial number automatically
+    if (!(COL_TRIAL_NUM %in% names(dat))) {
+      dat <- dat %>%
+        mutate(!!COL_TRIAL_NUM := 0:(n()-1))
+    }
+    
     dat <- dat %>%
       mutate(!!COL_BLOCK_HALF := plyr::mapvalues(make_half_seq(n()), from = c(1, 2), to = c("first_half", "second_half"))) %>%
       ungroup()

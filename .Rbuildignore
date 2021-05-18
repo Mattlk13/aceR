@@ -1,3 +1,5 @@
+^renv$
+^renv\.lock$
 ^.*\.Rproj$
 ^\.Rproj\.user$
 datamart-master/
@@ -5,3 +7,4 @@ scripts/
 ^\.travis\.yml$
 CONTRIBUTING.md
 ^~/\.boxr-oauth$
+^ignore/*
