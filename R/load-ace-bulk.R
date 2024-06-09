@@ -54,6 +54,10 @@ load_ace_bulk <- function(path = ".",
       return (load_ace_file(x, app_type = data_type))
     }))
   
+  if (all(map_lgl(out$data, ~nrow(.) == 0))) {
+   return(out)
+  }
+
   out <- out %>%
     filter(map(data, ~nrow(.)) > 0) %>% # if extraction failed, data will have 0 rows and other commands on data will fail
     mutate(data = map(data, function(x) {
