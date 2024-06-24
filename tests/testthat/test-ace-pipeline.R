@@ -26,7 +26,6 @@ test_that("ACE loading errors when expected", {
 
 test_that("loading a file with all practice trials does not error, and returns an empty data frame", {
   result <- load_ace_bulk(aceR_sample_data_path("nexus"), pattern = "all_practice_backwardsspatialspan", data_type="nexus")
-  all_practice_file_path = file.path(aceR_sample_data_path("nexus"), "all_practice_backwardsspatialspan.csv")
   expect_equal(nrow(result), 1) # expect 1 row for the file
   expect_equal(nrow(result$data[[1]]), 0) # data should be empty
 })
