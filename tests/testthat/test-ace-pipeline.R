@@ -24,6 +24,12 @@ test_that("ACE loading errors when expected", {
                "not an allowed setting of data_type")
 })
 
+test_that("loading a file with all practice trials does not error, and returns an empty data frame", {
+  result <- load_ace_bulk(aceR_sample_data_path("nexus"), pattern = "all_practice_backwardsspatialspan", data_type="nexus")
+  expect_equal(nrow(result), 1) # expect 1 row for the file
+  expect_equal(nrow(result$data[[1]]), 0) # data should be empty
+})
+
 range_cutoff <- c(150, 2000)
 
 sd_cutoff <- 2

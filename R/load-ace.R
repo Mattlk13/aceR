@@ -172,6 +172,11 @@ transform_mid <- function (dat, file, app_type) {
       summarize_practice()
   }
   
+  if (nrow(dat) == 0) {
+    warning("processing resulted in an empty data frame - likely due to no real trials (all practice)")
+    return(dat)
+  }
+
   # Should only activate for explorer demos modules
   if (dat[[COL_MODULE]][1] != DEMOS) {
     if (COL_CONDITION %in% names(dat)) {

@@ -14,3 +14,12 @@ test_that("SEA CSV loads in", {
   expect_gt(nrow(load_sea_file(sample_sea)), 0)
   expect_false(any(endsWith(load_sea_file(sample_sea)[[COL_MODULE]], ".")))
 })
+
+test_that("load_ace_file returns raises warning when called on a file with all practice data - should return an empty dataframe", {
+  all_practice_file_path = file.path(aceR_sample_data_path("nexus"), "all_practice_backwardsspatialspan.csv")
+  expect_warning(
+    result <- load_ace_file(all_practice_file_path, app_type = "nexus"),
+    "processing resulted in an empty data frame"
+  )
+  expect_equal(nrow(result), 0)
+})
