@@ -192,7 +192,6 @@ standardize_ace_column_names <- function(df) {
   new = names(df)
   new = case_when(new == "response_time" ~ COL_RT,
                   new == "response_window" ~ COL_RW,
-                  new %in% c("participant_id", "user_id") ~ COL_PID,
                   new == "user_name" ~ COL_NAME,
                   new == "user_age" ~ COL_AGE,
                   new == "user_grade" ~ COL_GRADE,
@@ -206,8 +205,23 @@ standardize_ace_column_names <- function(df) {
                   new == "task_switch_state" ~ "taskswitch_state",
                   TRUE ~ new) # for cross compatibility b/w emailed and pulvinar)
   names(df) = new
+
+  # With newer data formats (nexus), "PID" may already be included alongside
+  # an existing "participant_id". In this case, do not map "participant_id"
+  # to "PID" as we'll be creating a duplicate
+  rename_conditionally(df, "participant_id", COL_PID)
+  rename_conditionally(df, "user_id", COL_PID)
+  
   return (df)
 }
+
+rename_conditionally <- function(df, old_name, new_name) {
+  if (old_name %in% names(df) && !(new_name %in% names(df))) {
+    df <- df %>% rename(!!new_name := !!sym(old_name))
+  }
+  df
+}
+
 
 #' @importFrom dplyr mutate
 #' @importFrom magrittr %>%
