@@ -127,3 +127,12 @@ remove_whitespace <- function(x) {
   return (ifelse(is.na(x), NA, gsub("[[:space:]]", "", x)))
 }
 
+#'  Rename a column in a dataframe if the old name exists and the new name does not
+#'
+#' @keywords internal
+rename_conditionally <- function(df, old_name, new_name) {
+  if (old_name %in% names(df) && !(new_name %in% names(df))) {
+    df <- df %>% rename(!!new_name := !!sym(old_name))
+  }
+  df
+}

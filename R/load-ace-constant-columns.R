@@ -209,17 +209,10 @@ standardize_ace_column_names <- function(df) {
   # With newer data formats (nexus), "PID" may already be included alongside
   # an existing "participant_id". In this case, do not map "participant_id"
   # to "PID" as we'll be creating a duplicate
-  rename_conditionally(df, "participant_id", COL_PID)
-  rename_conditionally(df, "user_id", COL_PID)
+  df <- rename_conditionally(df, "participant_id", COL_PID)
+  df <- rename_conditionally(df, "user_id", COL_PID)
   
   return (df)
-}
-
-rename_conditionally <- function(df, old_name, new_name) {
-  if (old_name %in% names(df) && !(new_name %in% names(df))) {
-    df <- df %>% rename(!!new_name := !!sym(old_name))
-  }
-  df
 }
 
 
