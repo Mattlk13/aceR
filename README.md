@@ -40,7 +40,12 @@ The package, as of March 2020, has transitioned to the [CalVer](https://calver.o
 
 ### Brief release notes
 
-### 21.7.0 (Current):
+### 24.0.0 (Current):
+
+Bug Fix:
+- Fixes an issue with loading the demographics.csv file caused by a duplicate PID column populated by the Nexus backend: https://github.com/joaquinanguera/aceR/issues/51
+
+### 21.7.0:
 
 New features:
 
